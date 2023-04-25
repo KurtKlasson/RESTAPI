@@ -16,7 +16,7 @@ var connection = mysql.createConnection({
     host: "localhost",
     user: "root",
     password: "",
-    database: "rest-api"
+    database: "restapi"
   });
 
   connection.connect(function(err) {
@@ -25,14 +25,12 @@ var connection = mysql.createConnection({
   });
 
 // GET route for all movies
-app.get('/movies', (req, res) => {
-  const movies = [
-    { title: 'The Shawshank Redemption', year: 1994 },
-    { title: 'The Godfather', year: 1972 },
-    { title: 'The Dark Knight', year: 2008 }
-  ];
-
-  res.json(movies);
+app.get('/movies', function(req, res) {
+  let sql = `SELECT * FROM movies`;
+  connection.query(sql, function (err, result, fields) {
+    if (err) throw err;
+    res.send(result);
+  });
 });
 
 app.get('/', (req, res) => {
@@ -45,7 +43,7 @@ app.get('/', (req, res) => {
       <li>/search?q=<i>query</i></li>
         <li>GET /movies - Hämtar alla filmer</li>
         <li>POST /movie - Skapar en ny filmer/li>
-        <li>POST /login - Skapar en ny användare/li>
+        <li>POST /users - Skapar en ny användare/li>
         <li>PUT /users/:id - Uppdaterar en befintlig användare med ID:t</li>
     </ul>
   `;
@@ -53,11 +51,19 @@ app.get('/', (req, res) => {
   res.send(routes);
 });
 // GET route for a specific movie
-app.get('/movies/:title', (req, res) => {
-  const title = req.params.title;
-  const movie = { title: title, year: 1994 };
-
-  res.json(movie);
+app.get('/movie/:title', function(req, res) {
+  let sql = `SELECT * FROM movies WHERE title = '${req.params.title}'`;
+  connection.query(sql, function (err, result, fields) {
+    if (err) throw err;
+    console.log(result.length)
+    if (result.length === 0) {
+      res.status(404).json({
+        message: "Movie not found"
+      });
+    } else {
+      res.send(result);
+    }
+  });
 });
 
 app.listen(port, () => {
@@ -77,17 +83,24 @@ app.get('/search', (req, res) => {
 });
 
 app.post('/movie', function(req, res) {
-    //kod här för att hantera anrop…
-    let sql = `INSERT INTO movies (movie, date)
+  let sql = `Select * FROM movies where title = '${req.body.title}'`;
+  connection.query(sql, function (err, results, fields) {
+    if (err) throw err;
+    if (results.length === 0){
+      let sql = `INSERT INTO movies (title, year)
       VALUES ('${req.body.title}', '${req.body.year}')`
-   
-    connection.query(sql, function(err, result, fields) {
-      if (err) throw err
+      connection.query(sql, function(err, result, fields) {
+        if (err) throw err;
         //kod här för att hantera returnera data…
-
-        res.send(result)
-    });
-   });
+        res.send(result);
+      });
+    } else {
+      res.status(400).json({
+        message: "Movie already exists"
+      });
+    }
+  });
+});
    
 
 app.put('/movies/:id', (req, res) => {
@@ -112,7 +125,7 @@ app.put('/movies/:id', (req, res) => {
 });
 
 
-app.post('/login', (req, res) => {
+app.post('/users', (req, res) => {
   const username = req.body.username;
   const password = req.body.password;
 
@@ -121,8 +134,22 @@ app.post('/login', (req, res) => {
 
   const passwordHash = crypto.pbkdf2Sync(password, salt, 10000, 32, 'sha256').toString('hex');
 
-  db.query('INSERT INTO users (username, password_hash) VALUES (?, ?)', [username, passwordHash], (err, result) => {
+  connection.query('INSERT INTO users (username, password_hash) VALUES (?, ?)', [username, passwordHash], (err, result) => {
     if (err) throw err;
     res.send('User created successfully!');
+  });
+});
+
+
+app.get('/user', function(req, res) {
+  let searchQuery = req.query.q;
+  let sql = `SELECT * FROM users WHERE id = ? OR username = ?`;
+  connection.query(sql, [searchQuery, searchQuery], function (err, results, fields) {
+    if (err) throw err;
+    if (results.length === 0) {
+      res.status(404).send('Användaren hittades inte.');
+    } else {
+      res.send(results);
+    }
   });
 });
