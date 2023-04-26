@@ -76,6 +76,12 @@ app.listen(port, () => {
 });
 
 
+app.get('/search', (req, res) => {
+  const query = req.query.q;
+  res.send(`Search query: ${query}`);
+  console.log(req.query)
+});
+
 app.post('/movie', function(req, res) {
   let sql = `Select * FROM movies where title = '${req.body.title}'`;
   connection.query(sql, function (err, results, fields) {
