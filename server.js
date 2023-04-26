@@ -52,7 +52,7 @@ app.get('/', (req, res) => {
 });
 // GET route for a specific movie
 app.get('/movie/:title', function(req, res) {
-  let sql = `SELECT * FROM movies WHERE title = '${req.params.title}'`;
+  let sql = `SELECT * FROM movies WHERE title = '${req.body.title}'`;
   connection.query(sql, function (err, result, fields) {
     if (err) throw err;
     console.log(result.length)
@@ -70,11 +70,6 @@ app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
 
-app.get('/movies/:userId', (req, res) => {
-  const userId = req.params.userId;
-  res.send(`User ID: ${userId}`);
-  console.log(req.params)
-});
 
 app.get('/search', (req, res) => {
   const query = req.query.q;
@@ -103,12 +98,12 @@ app.post('/movie', function(req, res) {
 });
    
 
-app.put('/movies/:id', (req, res) => {
-  const id = req.params.id;
-  const updatedUserData = req.body;
+app.put('/movies/:title', (req, res) => {
+  const id = req.body.title;
+  const updatedUserData = req.body.year;
   
 
-  connection.query('UPDATE movies SET ? WHERE id = ?', [updatedUserData, id], (error, results) => {
+  connection.query('UPDATE movies SET year = ? WHERE title = ?', [updatedUserData, id], (error, results) => {
     if (error) {
       console.error('Error updating movie: ', error);
       res.status(400).send('Could not update movie.');
@@ -143,7 +138,7 @@ app.post('/users', (req, res) => {
 
 app.get('/user', function(req, res) {
   let searchQuery = req.query.q;
-  let sql = `SELECT * FROM users WHERE id = ? OR username = ?`;
+  let sql = `SELECT * FROM users WHERE id = ${req.body.q} OR username = ${req.body.q}`;
   connection.query(sql, [searchQuery, searchQuery], function (err, results, fields) {
     if (err) throw err;
     if (results.length === 0) {
